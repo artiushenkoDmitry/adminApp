@@ -9,10 +9,13 @@ import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import org.example.config.StageManager;
 import org.example.enums.FxmlView;
+import org.example.service.LoginService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
+import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 
@@ -22,6 +25,7 @@ public class LoginController {
     @Value("${admin-panel.title}")
     private String adminPanelTitle;
     private final StageManager stageManager;
+    private final LoginService loginService;
 
     @FXML
     private Button cancelButton;
@@ -36,14 +40,20 @@ public class LoginController {
     private PasswordField passwordPasswordField;
 
     @Autowired
-    public LoginController(StageManager stageManager) {
+    public LoginController(StageManager stageManager, LoginService loginService) {
         this.stageManager = stageManager;
+        this.loginService = loginService;
     }
 
     public void loginButtonOnAction(ActionEvent e) throws IOException {
 
         if (!userNameTextField.getText().isBlank() && !passwordPasswordField.getText().isBlank()) {
-            stageManager.displayView(FxmlView.MAIN);
+            try {
+                String token = loginService.getToken(userNameTextField.getText(), passwordPasswordField.getText());
+                stageManager.displayView(FxmlView.MAIN);
+            } catch (HttpClientErrorException httpClientErrorException) {
+                loginMessageLabel.setText("Wrong credentials");
+            }
         } else {
             loginMessageLabel.setText("Please enter username and password");
         }
